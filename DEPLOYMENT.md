@@ -236,4 +236,4 @@ Backend will run on `http://localhost:8000`
 
 ---
 
-**Last Updated:** February 2026
+**Last Updated:** February 22, 2026 - Backend deployed to Render
