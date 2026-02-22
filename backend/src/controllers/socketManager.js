@@ -5,9 +5,9 @@ let connections = {}
 let messages = {}
 let timeOnline = {}
 
-export const connectToSocket = (server, corsOptions) => {
+export const connectToSocket = (server) => {
     const io = new Server(server, {
-        cors: corsOptions || {
+        cors: {
             origin: "*",
             methods: ["GET", "POST"],
             allowedHeaders: ["*"],
@@ -117,4 +117,3 @@ export const connectToSocket = (server, corsOptions) => {
 
     return io;
 }
-
