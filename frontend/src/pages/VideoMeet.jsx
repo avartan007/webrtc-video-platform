@@ -17,7 +17,9 @@ const server_url = server;
 
 const peerConfigConnections = {
     "iceServers": [
-        { "urls": "stun:stun.l.google.com:19302" }
+        { "urls": "stun:stun.l.google.com:19302" },
+        { "urls": "stun:stun1.l.google.com:19302" },
+        { "urls": "stun:stun2.l.google.com:19302" }
     ]
 }
 
@@ -246,10 +248,62 @@ export default function VideoMeetComponent() {
         })
     }
 
+    let initializePeerConnection = (socketListId) => {
+        if (connections.current[socketListId] === undefined && socketListId !== socketIdRef.current) {
+            connections.current[socketListId] = new RTCPeerConnection(peerConfigConnections);
+
+            connections.current[socketListId].onicecandidate = function (event) {
+                if (event.candidate !== null) {
+                    socketRef.current.emit('signal', socketListId, JSON.stringify({ 'ice': event.candidate }));
+                }
+            };
+
+            connections.current[socketListId].onaddstream = (event) => {
+                let videoExists = videoRef.current.find(video => video.socketId === socketListId);
+
+                if (videoExists) {
+                    setVideos(videos => {
+                        const updatedVideos = videos.map(video =>
+                            video.socketId === socketListId ? { ...video, stream: event.stream } : video
+                        );
+                        videoRef.current = updatedVideos;
+                        return updatedVideos;
+                    });
+                } else {
+                    let newVideo = {
+                        socketId: socketListId,
+                        stream: event.stream,
+                        autoplay: true,
+                        playsinline: true
+                    };
+
+                    setVideos(videos => {
+                        const updatedVideos = [...videos, newVideo];
+                        videoRef.current = updatedVideos;
+                        return updatedVideos;
+                    });
+                }
+            };
+
+            if (window.localStream !== undefined && window.localStream !== null) {
+                connections.current[socketListId].addStream(window.localStream);
+            } else {
+                let blackSilence = (...args) => new MediaStream([black(...args), silence()]);
+                window.localStream = blackSilence();
+                connections.current[socketListId].addStream(window.localStream);
+            }
+        }
+    };
+
     let gotMessageFromServer = (fromId, message) => {
         var signal = JSON.parse(message)
 
         if (fromId !== socketIdRef.current) {
+            // Ensure connection exists before handling signal
+            if (!connections.current[fromId]) {
+                initializePeerConnection(fromId);
+            }
+
             if (signal.sdp) {
                 connections.current[fromId].setRemoteDescription(new RTCSessionDescription(signal.sdp)).then(() => {
                     if (signal.sdp.type === 'offer') {
@@ -288,50 +342,7 @@ export default function VideoMeetComponent() {
 
             socketRef.current.on('user-joined', (id, clients) => {
                 clients.forEach((socketListId) => {
-                    if (connections.current[socketListId] === undefined && socketListId !== socketIdRef.current) {
-                        connections.current[socketListId] = new RTCPeerConnection(peerConfigConnections)
-
-                        connections.current[socketListId].onicecandidate = function (event) {
-                            if (event.candidate != null) {
-                                socketRef.current.emit('signal', socketListId, JSON.stringify({ 'ice': event.candidate }))
-                            }
-                        }
-
-                        connections.current[socketListId].onaddstream = (event) => {
-                            let videoExists = videoRef.current.find(video => video.socketId === socketListId);
-
-                            if (videoExists) {
-                                setVideos(videos => {
-                                    const updatedVideos = videos.map(video =>
-                                        video.socketId === socketListId ? { ...video, stream: event.stream } : video
-                                    );
-                                    videoRef.current = updatedVideos;
-                                    return updatedVideos;
-                                });
-                            } else {
-                                let newVideo = {
-                                    socketId: socketListId,
-                                    stream: event.stream,
-                                    autoplay: true,
-                                    playsinline: true
-                                };
-
-                                setVideos(videos => {
-                                    const updatedVideos = [...videos, newVideo];
-                                    videoRef.current = updatedVideos;
-                                    return updatedVideos;
-                                });
-                            }
-                        };
-
-                        if (window.localStream !== undefined && window.localStream !== null) {
-                            connections.current[socketListId].addStream(window.localStream)
-                        } else {
-                            let blackSilence = (...args) => new MediaStream([black(...args), silence()])
-                            window.localStream = blackSilence()
-                            connections.current[socketListId].addStream(window.localStream)
-                        }
-                    }
+                    initializePeerConnection(socketListId);
                 })
 
                 if (id === socketIdRef.current) {
@@ -522,6 +533,7 @@ export default function VideoMeetComponent() {
                                         }
                                     }}
                                     autoPlay
+                                    playsInline
                                 >
                                 </video>
                             </div>
