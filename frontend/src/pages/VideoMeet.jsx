@@ -61,6 +61,7 @@ export default function VideoMeetComponent() {
 
     useEffect(() => {
         getPermissions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     let getDislayMedia = () => {
@@ -119,6 +120,7 @@ export default function VideoMeetComponent() {
             getUserMedia();
             console.log("SET STATE HAS ", video, audio);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [video, audio])
 
     useEffect(() => {
