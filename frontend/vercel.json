@@ -1,14 +1,14 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "build",
-  "framework": "react",
-  "env": {
-    "REACT_APP_SERVER_URL": "@react_app_server_url"
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+    "buildCommand": "npm run build",
+    "outputDirectory": "build",
+    "framework": "react",
+    "env": {
+        "REACT_APP_SERVER_URL": "@react_app_server_url"
+    },
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
 }
